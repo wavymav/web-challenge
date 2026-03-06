@@ -1,11 +1,213 @@
 "use client";
 
-import { gql } from "@apollo/client";
-import { useMutation, useQuery } from "@apollo/client/react";
+/**
+ * Post hooks — TanStack Query (REST API).
+ * Apollo Client version is commented below. Uncomment to switch back to Apollo + GraphQL.
+ */
 
-import { getCurrentUserId } from "@/lib/current-user";
+// import type { InfiniteData } from "@tanstack/react-query";
+// import {
+//   useInfiniteQuery,
+//   useMutation,
+//   useQuery,
+//   useQueryClient,
+// } from "@tanstack/react-query";
+
+// import {
+//   fetchAuthor,
+//   fetchAuthorPosts,
+//   fetchPosts,
+//   likePost as likePostApi,
+// } from "@/lib/api";
+// import type { Post, PostsResponse } from "@/lib/api";
+// import { getCurrentUserId } from "@/lib/current-user";
 
 const PAGE_SIZE = 3;
+
+// function updatePostLikesInPages(
+//   pages: { posts: Post[]; hasMore: boolean; nextOffset: number | null }[],
+//   postId: string,
+//   currentUserId: string,
+//   isLiked: boolean,
+// ) {
+//   const nextLikes = (likes: string[]) =>
+//     isLiked
+//       ? likes.filter((id) => id !== currentUserId)
+//       : [...likes, currentUserId];
+
+//   return pages.map((page) => ({
+//     ...page,
+//     posts: page.posts.map((p) =>
+//       p.id === postId ? { ...p, likes: nextLikes(p.likes) } : p,
+//     ),
+//   }));
+// }
+
+// // =============================================================================
+// // TanStack Query implementation (REST API)
+// // =============================================================================
+
+// export function useInfinitePosts() {
+//   const {
+//     data,
+//     isLoading,
+//     isError,
+//     error,
+//     fetchNextPage,
+//     hasNextPage,
+//     isFetchingNextPage,
+//     refetch,
+//   } = useInfiniteQuery({
+//     queryKey: ["posts"],
+//     queryFn: ({ pageParam }) => fetchPosts(pageParam ?? 0, PAGE_SIZE),
+//     initialPageParam: 0 as number | null,
+//     getNextPageParam: (lastPage) => lastPage.nextOffset,
+//   });
+
+//   return {
+//     data,
+//     isLoading,
+//     isError,
+//     error,
+//     fetchNextPage,
+//     hasNextPage,
+//     isFetchingNextPage,
+//     refetch,
+//   };
+// }
+
+// export function useAuthor(username: string) {
+//   const { data, isLoading, isError } = useQuery({
+//     queryKey: ["author", username],
+//     queryFn: () => fetchAuthor(username),
+//     enabled: !!username,
+//   });
+
+//   return {
+//     data,
+//     isLoading,
+//     isError,
+//   };
+// }
+
+// export function useAuthorPosts(username: string) {
+//   const {
+//     data,
+//     isLoading,
+//     isError,
+//     fetchNextPage,
+//     hasNextPage,
+//     isFetchingNextPage,
+//     refetch,
+//   } = useInfiniteQuery({
+//     queryKey: ["author", username, "posts"],
+//     queryFn: ({ pageParam }) =>
+//       fetchAuthorPosts(username, pageParam ?? 0, PAGE_SIZE),
+//     initialPageParam: 0 as number | null,
+//     getNextPageParam: (lastPage) => lastPage.nextOffset,
+//     enabled: !!username,
+//   });
+
+//   return {
+//     data,
+//     fetchNextPage,
+//     hasNextPage,
+//     isFetchingNextPage,
+//     isLoading,
+//     isError,
+//     refetch,
+//   };
+// }
+
+// type LikeMutationVars = { postId: string; isLiked: boolean; likeCount: number };
+
+// export function useLikePost() {
+//   const queryClient = useQueryClient();
+//   const currentUserId = getCurrentUserId();
+
+//   const mutation = useMutation({
+//     mutationFn: ({ postId }: LikeMutationVars) => likePostApi(postId),
+//     onMutate: async ({ postId, isLiked }) => {
+//       await queryClient.cancelQueries({ queryKey: ["posts"] });
+//       await queryClient.cancelQueries({ queryKey: ["author"] });
+
+//       const previousPosts = queryClient.getQueryData<
+//         InfiniteData<PostsResponse>
+//       >(["posts"]);
+//       const previousAuthorQueries = queryClient.getQueriesData<
+//         InfiniteData<PostsResponse>
+//       >({
+//         queryKey: ["author"],
+//       });
+
+//       queryClient.setQueryData<InfiniteData<PostsResponse>>(
+//         ["posts"],
+//         (old) => {
+//           if (!old) return old;
+//           return {
+//             ...old,
+//             pages: updatePostLikesInPages(
+//               old.pages,
+//               postId,
+//               currentUserId,
+//               isLiked,
+//             ),
+//           };
+//         },
+//       );
+
+//       previousAuthorQueries.forEach(([queryKey, data]) => {
+//         if (queryKey[2] === "posts" && data) {
+//           queryClient.setQueryData<InfiniteData<PostsResponse>>(queryKey, {
+//             ...data,
+//             pages: updatePostLikesInPages(
+//               data.pages,
+//               postId,
+//               currentUserId,
+//               isLiked,
+//             ),
+//           });
+//         }
+//       });
+
+//       return { previousPosts, previousAuthorQueries };
+//     },
+//     onError: (_err, _vars, context) => {
+//       if (context?.previousPosts) {
+//         queryClient.setQueryData(["posts"], context.previousPosts);
+//       }
+//       context?.previousAuthorQueries?.forEach(([queryKey, data]) => {
+//         if (queryKey[2] === "posts" && data) {
+//           queryClient.setQueryData(queryKey, data);
+//         }
+//       });
+//     },
+//     onSettled: () => {
+//       queryClient.invalidateQueries({ queryKey: ["posts"] });
+//       queryClient.invalidateQueries({ queryKey: ["author"] });
+//     },
+//   });
+
+//   const mutate = (postId: string, isLiked: boolean, likeCount: number) => {
+//     const vars: LikeMutationVars = { postId, isLiked, likeCount };
+//     return mutation.mutate(vars);
+//   };
+
+//   return {
+//     mutate,
+//     mutateAsync: (postId: string, isLiked: boolean, likeCount: number) =>
+//       likePostApi(postId).then((r) => r),
+//     isPending: mutation.isPending,
+//   };
+// }
+
+// =============================================================================
+// Apollo Client implementation (commented out — uncomment to switch back)
+// =============================================================================
+
+import { gql } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client/react";
+import { getCurrentUserId } from "@/lib/current-user";
 
 interface PostsConnection {
   posts: Array<{
@@ -202,7 +404,6 @@ export function useLikePost() {
               return arr.filter((id) => id !== currentUserId);
             return arr;
           },
-
         },
       });
     },
