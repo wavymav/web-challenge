@@ -23,7 +23,8 @@ export function Feed() {
   useEffect(() => {
     if (!hasNextPage || isFetchingNextPage) return;
     const el = sentinelRef.current;
-    if (!el) return;
+    const scrollRoot = document.getElementById("main-scroll");
+    if (!el || !scrollRoot) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -31,13 +32,15 @@ export function Feed() {
           fetchNextPage();
         }
       },
-      { rootMargin: "100px", threshold: 0 },
+      { root: scrollRoot, rootMargin: "100px", threshold: 0 },
     );
     observer.observe(el);
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  if (isLoading) {
+  const posts = data?.pages.flatMap((p) => p.posts) ?? [];
+
+  if (isLoading && posts.length === 0) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <Loader />
@@ -61,8 +64,6 @@ export function Feed() {
       </div>
     );
   }
-
-  const posts = data?.pages.flatMap((p) => p.posts) ?? [];
 
   if (posts.length === 0) {
     return (

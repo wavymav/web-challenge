@@ -12,7 +12,8 @@ import { useAuthor, useAuthorPosts } from "@/hooks/use-posts";
 
 export default function ProfilePage() {
   const params = useParams();
-  const username = params.username as string;
+  const usernameParam = params?.username as string | undefined;
+  const username = usernameParam ?? "";
 
   const {
     data: authorData,
@@ -30,27 +31,29 @@ export default function ProfilePage() {
   } = useAuthorPosts(username);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const paramsReady = !!usernameParam;
 
   useEffect(() => {
     document.getElementById("main-scroll")?.scrollTo(0, 0);
-  }, [username]);
+  }, [usernameParam]);
 
   useEffect(() => {
     if (!hasNextPage || isFetchingNextPage) return;
     const el = sentinelRef.current;
-    if (!el) return;
+    const scrollRoot = document.getElementById("main-scroll");
+    if (!el || !scrollRoot) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) fetchNextPage();
       },
-      { rootMargin: "100px", threshold: 0 },
+      { root: scrollRoot, rootMargin: "100px", threshold: 0 },
     );
     observer.observe(el);
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  if (authorLoading) {
+  if (!paramsReady || authorLoading) {
     return (
       <main className="flex min-h-screen flex-col gap-4 pb-20 pt-4">
         <Link

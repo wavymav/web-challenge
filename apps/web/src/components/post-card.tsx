@@ -76,7 +76,7 @@ export function PostCard({ post }: PostCardProps) {
               variant="ghost"
               size="icon"
               className={`size-9 rounded-full ${isLiked ? "text-red-500" : "text-foreground"}`}
-              onClick={() => likeMutation.mutate(post.id)}
+              onClick={() => likeMutation.mutate(post.id, isLiked, likeCount)}
               disabled={likeMutation.isPending}
             >
               {likeMutation.isPending ? (

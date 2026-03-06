@@ -1,22 +1,53 @@
-/**
- * Apollo Client setup for GraphQL API.
- * Uncomment and use this file if the candidate chooses the GraphQL + Apollo Client approach.
- * Also uncomment ApolloProvider in providers.tsx and use use-posts-graphql.ts hooks.
- */
+import {
+  ApolloClient,
+  HttpLink,
+  InMemoryCache,
+} from "@apollo/client";
 
-// import { ApolloClient, HttpLink, InMemoryCache } from "@apollo/client";
+const httpLink = new HttpLink({
+  uri: "/api/graphql",
+});
 
-// const httpLink = new HttpLink({
-//   uri: "/api/graphql",
-// });
-
-// export const apolloClient = new ApolloClient({
-//   link: httpLink,
-//   cache: new InMemoryCache(),
-//   defaultOptions: {
-//     watchQuery: {
-//       fetchPolicy: "cache-and-network",
-//       errorPolicy: "all",
-//     },
-//   },
-// });
+export const apolloClient = new ApolloClient({
+  link: httpLink,
+  cache: new InMemoryCache({
+    typePolicies: {
+      Query: {
+        fields: {
+          posts: {
+            keyArgs: false,
+            merge(existing, incoming, context) {
+              const args = context?.args;
+              const offset = (args?.offset as number) ?? 0;
+              if (!incoming?.posts) return incoming ?? existing;
+              if (!existing?.posts || offset === 0) return incoming;
+              return {
+                ...incoming,
+                posts: [...existing.posts, ...incoming.posts],
+              };
+            },
+          },
+          authorPosts: {
+            keyArgs: ["username"],
+            merge(existing, incoming, context) {
+              const args = context?.args;
+              const offset = (args?.offset as number) ?? 0;
+              if (!incoming?.posts) return incoming ?? existing;
+              if (!existing?.posts || offset === 0) return incoming;
+              return {
+                ...incoming,
+                posts: [...existing.posts, ...incoming.posts],
+              };
+            },
+          },
+        },
+      },
+    },
+  }),
+  defaultOptions: {
+    watchQuery: {
+      fetchPolicy: "cache-and-network",
+      errorPolicy: "all",
+    },
+  },
+});

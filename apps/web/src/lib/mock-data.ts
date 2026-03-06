@@ -128,7 +128,7 @@ const POSTS: Post[] = [
   },
 ];
 
-const API_DELAY_MS = 1200;
+const API_DELAY_MS = 3000;
 const API_ERROR_RATE = 0; // Set to 0.1 to simulate 10% errors for testing
 
 function delay(ms: number = API_DELAY_MS): Promise<void> {
@@ -162,7 +162,7 @@ export function getUserByUsername(username: string): User | null {
 export async function getPaginatedPostsByAuthor(
   authorId: string,
   offset: number,
-  limit: number
+  limit: number,
 ): Promise<{
   posts: Post[];
   hasMore: boolean;
@@ -190,7 +190,10 @@ export async function getPaginatedPostsByAuthor(
   };
 }
 
-export async function getPaginatedPosts(offset: number, limit: number): Promise<{
+export async function getPaginatedPosts(
+  offset: number,
+  limit: number,
+): Promise<{
   posts: Post[];
   hasMore: boolean;
   nextOffset: number | null;
@@ -216,8 +219,13 @@ export async function getPaginatedPosts(offset: number, limit: number): Promise<
   };
 }
 
-export async function toggleLike(postId: string, userId: string): Promise<{ liked: boolean; likeCount: number }> {
-  await delay(800);
+const LIKE_DELAY_MS = 2500;
+
+export async function toggleLike(
+  postId: string,
+  userId: string,
+): Promise<{ liked: boolean; likeCount: number }> {
+  await delay(LIKE_DELAY_MS);
   maybeFail();
 
   const likes = likesByPost.get(postId) ?? new Set<string>();

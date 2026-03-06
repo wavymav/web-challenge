@@ -1,6 +1,8 @@
-import { buildSchema } from "graphql";
+import { makeExecutableSchema } from "@graphql-tools/schema";
 
-export const schema = buildSchema(`
+import { rootValue } from "./resolvers";
+
+const typeDefs = `
   type User {
     id: ID!
     username: String!
@@ -31,9 +33,25 @@ export const schema = buildSchema(`
 
   type Query {
     posts(offset: Int, limit: Int): PostsConnection!
+    author(username: String!): User
+    authorPosts(username: String!, offset: Int, limit: Int): PostsConnection!
   }
 
   type Mutation {
     likePost(postId: ID!): LikeResponse!
   }
-`);
+`;
+
+export const schema = makeExecutableSchema({
+  typeDefs,
+  resolvers: {
+    Query: {
+      posts: rootValue.posts,
+      author: rootValue.author,
+      authorPosts: rootValue.authorPosts,
+    },
+    Mutation: {
+      likePost: rootValue.likePost,
+    },
+  },
+});

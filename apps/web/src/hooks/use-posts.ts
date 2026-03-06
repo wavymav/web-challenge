@@ -1,110 +1,232 @@
 "use client";
 
-import {
-  useInfiniteQuery,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { gql } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client/react";
 
-import {
-  fetchAuthor,
-  fetchAuthorPosts,
-  fetchPosts,
-  likePost as apiLikePost,
-  type Post,
-} from "@/lib/api";
 import { getCurrentUserId } from "@/lib/current-user";
 
-const POSTS_QUERY_KEY = ["posts"] as const;
-const AUTHOR_POSTS_QUERY_KEY = (username: string) =>
-  ["posts", "author", username] as const;
 const PAGE_SIZE = 3;
 
+interface PostsConnection {
+  posts: Array<{
+    id: string;
+    authorId: string;
+    author: {
+      id: string;
+      username: string;
+      displayName: string;
+      avatarUrl: string;
+    };
+    imageUrl: string;
+    caption: string;
+    likes: string[];
+    createdAt: string;
+  }>;
+  hasMore: boolean;
+  nextOffset: number | null;
+}
+
+const POSTS_QUERY = gql`
+  query GetPosts($offset: Int, $limit: Int) {
+    posts(offset: $offset, limit: $limit) {
+      posts {
+        id
+        authorId
+        author {
+          id
+          username
+          displayName
+          avatarUrl
+        }
+        imageUrl
+        caption
+        likes
+        createdAt
+      }
+      hasMore
+      nextOffset
+    }
+  }
+`;
+
+const AUTHOR_QUERY = gql`
+  query GetAuthor($username: String!) {
+    author(username: $username) {
+      id
+      username
+      displayName
+      avatarUrl
+    }
+  }
+`;
+
+const AUTHOR_POSTS_QUERY = gql`
+  query GetAuthorPosts($username: String!, $offset: Int, $limit: Int) {
+    authorPosts(username: $username, offset: $offset, limit: $limit) {
+      posts {
+        id
+        authorId
+        author {
+          id
+          username
+          displayName
+          avatarUrl
+        }
+        imageUrl
+        caption
+        likes
+        createdAt
+      }
+      hasMore
+      nextOffset
+    }
+  }
+`;
+
+const LIKE_POST_MUTATION = gql`
+  mutation LikePost($postId: ID!) {
+    likePost(postId: $postId) {
+      liked
+      likeCount
+    }
+  }
+`;
+
 export function useInfinitePosts() {
-  return useInfiniteQuery({
-    queryKey: POSTS_QUERY_KEY,
-    queryFn: ({ pageParam }) => fetchPosts(pageParam, PAGE_SIZE),
-    initialPageParam: 0,
-    getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
+  const { data, loading, error, fetchMore, refetch, networkStatus } = useQuery<{
+    posts: PostsConnection;
+  }>(POSTS_QUERY, {
+    variables: { offset: 0, limit: PAGE_SIZE },
+    fetchPolicy: "cache-first",
+    notifyOnNetworkStatusChange: true,
   });
-}
 
-export function useAuthor(username: string) {
-  return useQuery({
-    queryKey: ["author", username],
-    queryFn: () => fetchAuthor(username),
-    enabled: !!username,
-  });
-}
+  const connection = data?.posts;
+  const posts = connection?.posts ?? [];
+  const hasMore = connection?.hasMore ?? false;
+  const nextOffset = connection?.nextOffset ?? null;
 
-export function useAuthorPosts(username: string) {
-  return useInfiniteQuery({
-    queryKey: AUTHOR_POSTS_QUERY_KEY(username),
-    queryFn: ({ pageParam }) => fetchAuthorPosts(username, pageParam, PAGE_SIZE),
-    initialPageParam: 0,
-    getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
-    enabled: !!username,
-  });
-}
+  const fetchNextPage = () => {
+    if (!hasMore || nextOffset == null) return;
+    fetchMore({
+      variables: { offset: nextOffset, limit: PAGE_SIZE },
+    });
+  };
 
-function toggleLikeInPost(p: Post, postId: string, currentUserId: string): Post {
-  if (p.id !== postId) return p;
-  const hasLiked = p.likes.includes(currentUserId);
   return {
-    ...p,
-    likes: hasLiked
-      ? p.likes.filter((id) => id !== currentUserId)
-      : [...p.likes, currentUserId],
+    data: connection ? { pages: [{ posts, nextOffset }] } : undefined,
+    isLoading: loading,
+    isError: !!error,
+    error,
+    fetchNextPage,
+    hasNextPage: hasMore,
+    isFetchingNextPage: networkStatus === 3,
+    refetch,
   };
 }
 
-function updatePostsInCache(
-  old: { pages: Array<{ posts: Post[] }> } | undefined,
-  postId: string,
-  currentUserId: string
-) {
-  if (!old) return old;
+export function useAuthor(username: string) {
+  const { data, loading, error } = useQuery<{
+    author: {
+      id: string;
+      username: string;
+      displayName: string;
+      avatarUrl: string;
+    } | null;
+  }>(AUTHOR_QUERY, {
+    variables: { username },
+    skip: !username,
+    fetchPolicy: "cache-first",
+  });
+
   return {
-    ...old,
-    pages: old.pages.map((page) => ({
-      ...page,
-      posts: page.posts.map((p) => toggleLikeInPost(p, postId, currentUserId)),
-    })),
+    data: data?.author ? { author: data.author } : undefined,
+    isLoading: loading,
+    isError: !!error,
+  };
+}
+
+export function useAuthorPosts(username: string) {
+  const { data, loading, error, fetchMore, refetch, networkStatus } = useQuery<{
+    authorPosts: PostsConnection;
+  }>(AUTHOR_POSTS_QUERY, {
+    variables: { username: username, offset: 0, limit: PAGE_SIZE },
+    skip: !username,
+    fetchPolicy: "cache-first",
+    notifyOnNetworkStatusChange: true,
+  });
+
+  const connection = data?.authorPosts;
+  const posts = connection?.posts ?? [];
+  const hasMore = connection?.hasMore ?? false;
+  const nextOffset = connection?.nextOffset ?? null;
+
+  const fetchNextPage = () => {
+    if (!hasMore || nextOffset == null) return;
+    fetchMore({
+      variables: { offset: nextOffset, limit: PAGE_SIZE },
+    });
+  };
+
+  return {
+    data: connection ? { pages: [{ posts, nextOffset }] } : undefined,
+    fetchNextPage,
+    hasNextPage: hasMore,
+    isFetchingNextPage: networkStatus === 3,
+    isLoading: loading,
+    isError: !!error,
+    refetch,
   };
 }
 
 export function useLikePost() {
-  const queryClient = useQueryClient();
   const currentUserId = getCurrentUserId();
 
-  return useMutation({
-    mutationFn: (postId: string) => apiLikePost(postId),
-    onMutate: async (postId) => {
-      await queryClient.cancelQueries({ queryKey: POSTS_QUERY_KEY });
-      await queryClient.cancelQueries({ queryKey: ["posts", "author"] });
+  const [likePost, result] = useMutation<{
+    likePost: { liked: boolean; likeCount: number };
+  }>(LIKE_POST_MUTATION, {
+    update(cache, { data: mutationData }, { variables }) {
+      const postId = variables?.postId as string | undefined;
+      if (!postId || !mutationData?.likePost) return;
 
-      const prevPosts = queryClient.getQueryData<{
-        pages: Array<{ posts: Post[] }>;
-      }>(POSTS_QUERY_KEY);
+      const shouldBeLiked = mutationData.likePost.liked;
 
-      queryClient.setQueryData(POSTS_QUERY_KEY, (old) =>
-        updatePostsInCache(old as typeof prevPosts, postId, currentUserId)
-      );
+      cache.modify({
+        id: cache.identify({ __typename: "Post", id: postId }),
+        fields: {
+          likes(existing) {
+            const arr = Array.isArray(existing) ? existing : [];
+            const hasLiked = arr.includes(currentUserId);
+            if (shouldBeLiked && !hasLiked) return [...arr, currentUserId];
+            if (!shouldBeLiked && hasLiked)
+              return arr.filter((id) => id !== currentUserId);
+            return arr;
+          },
 
-      queryClient.setQueriesData<{ pages: Array<{ posts: Post[] }> }>(
-        { queryKey: ["posts", "author"] },
-        (old) => (old ? updatePostsInCache(old, postId, currentUserId) : old)
-      );
-
-      return { prevPosts };
-    },
-    onError: (_err, _postId, context) => {
-      if (context?.prevPosts) {
-        queryClient.setQueryData(POSTS_QUERY_KEY, context.prevPosts);
-      }
-      queryClient.invalidateQueries({ queryKey: POSTS_QUERY_KEY });
-      queryClient.invalidateQueries({ queryKey: ["posts", "author"] });
+        },
+      });
     },
   });
+
+  const mutate = (postId: string, isLiked: boolean, likeCount: number) => {
+    const optimisticLiked = !isLiked;
+    const optimisticCount = isLiked ? likeCount - 1 : likeCount + 1;
+    return likePost({
+      variables: { postId },
+      optimisticResponse: {
+        likePost: {
+          __typename: "LikeResponse",
+          liked: optimisticLiked,
+          likeCount: optimisticCount,
+        },
+      } as { likePost: { liked: boolean; likeCount: number } },
+    });
+  };
+
+  return {
+    mutate,
+    mutateAsync: (postId: string, isLiked: boolean, likeCount: number) =>
+      mutate(postId, isLiked, likeCount).then((r) => r.data),
+    isPending: result.loading,
+  };
 }

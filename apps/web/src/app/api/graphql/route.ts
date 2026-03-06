@@ -1,7 +1,6 @@
 import { graphql } from "graphql";
 import { NextRequest } from "next/server";
 
-import { rootValue } from "@/lib/graphql/resolvers";
 import { schema } from "@/lib/graphql/schema";
 
 export async function POST(request: NextRequest) {
@@ -19,7 +18,6 @@ export async function POST(request: NextRequest) {
     const result = await graphql({
       schema,
       source: query as string,
-      rootValue,
       variableValues: variables ?? undefined,
     });
 
