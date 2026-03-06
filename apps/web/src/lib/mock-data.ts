@@ -1,8 +1,3 @@
-/**
- * Mock data for the Instagram/Fanfix clone.
- * Used by both REST and GraphQL APIs.
- */
-
 export interface User {
   id: string;
   username: string;

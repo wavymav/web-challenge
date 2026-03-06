@@ -1,8 +1,5 @@
 "use client";
 
-import { MoreHorizontal, Pin } from "lucide-react";
-import Link from "next/link";
-
 import { ModeToggle } from "./mode-toggle";
 
 export default function Header() {

@@ -10,6 +10,7 @@ import Loader from "@/components/loader";
 import { PostCard } from "@/components/post-card";
 import { useAuthor, useAuthorPosts } from "@/hooks/use-posts";
 
+// TODO: Profile uses useAuthor + useAuthorPosts — implement with infinite scroll + like/unlike
 export default function ProfilePage() {
   const params = useParams();
   const usernameParam = params?.username as string | undefined;

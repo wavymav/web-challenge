@@ -6,6 +6,7 @@ import Loader from "@/components/loader";
 import { PostCard } from "@/components/post-card";
 import { useInfinitePosts } from "@/hooks/use-posts";
 
+// TODO: Feed uses useInfinitePosts — implement in use-posts.ts with pagination + infinite scroll
 export function Feed() {
   const {
     data,

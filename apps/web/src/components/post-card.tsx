@@ -11,10 +11,11 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
-import type { Post } from "@/lib/api";
+import type { Post } from "@/lib/data-fetch";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { useLikePost } from "@/hooks/use-posts";
 
+// TODO: useLikePost needs optimistic updates — implement in use-posts.ts
 interface PostCardProps {
   post: Post;
 }

@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "web-challenge",
-  description: "web-challenge",
+  title: "Fanfix",
+  description: "Connect with your favorite creators.",
 };
 
 export default function RootLayout({
