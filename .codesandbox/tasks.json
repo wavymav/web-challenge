@@ -3,7 +3,7 @@
   "setupTasks": [
     {
       "name": "Install Dependencies",
-      "command": "bun install"
+      "command": "pnpm install"
     }
   ],
 
@@ -11,33 +11,33 @@
   "tasks": {
     "dev": {
       "name": "Start Dev Server",
-      "command": "bun run dev",
+      "command": "pnpm run dev",
       "runAtStart": true,
       "preview": {
         "port": 3000
       },
       "restartOn": {
-        "files": ["./bun-lock.yaml"]
+        "files": ["./pnpm-lock.yaml"]
       }
     },
     "build": {
       "name": "Build",
-      "command": "bun run build",
+      "command": "pnpm run build",
       "runAtStart": false
     },
     "start": {
       "name": "Start Server",
-      "command": "bun run start",
+      "command": "pnpm run start",
       "runAtStart": false
     },
     "lint": {
       "name": "Lint",
-      "command": "bun run lint",
+      "command": "pnpm run lint",
       "runAtStart": false
     },
     "install": {
       "name": "Install Dependencies",
-      "command": "bun install",
+      "command": "pnpm install",
       "restartOn": {
         "files": ["./package.json"]
       }
