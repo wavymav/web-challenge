@@ -1,42 +1,57 @@
-# web-challenge
+# Feed Coding Challenge
 
-This project was created with [Better-T-Stack](https://github.com/AmanVarshney01/create-better-t-stack), a modern TypeScript stack that combines Next.js, Self, and more.
+Build a post feed with infinite scroll, offset pagination, and like functionality.
 
-## Features
-
-- **TypeScript** - For type safety and improved developer experience
-- **Next.js** - Full-stack React framework
-- **TailwindCSS** - Utility-first CSS for rapid UI development
-- **shadcn/ui** - Reusable UI components
-- **Turborepo** - Optimized monorepo build system
-
-## Getting Started
-
-First, install the dependencies:
+## Setup
 
 ```bash
 bun install
-```
-
-Then, run the development server:
-
-```bash
 bun run dev
 ```
 
-Open [http://localhost:3001](http://localhost:3001) in your browser to see the fullstack application.
+Open [http://localhost:3001](http://localhost:3001).
 
-## Project Structure
+## Requirements
 
-```
-web-challenge/
-├── apps/
-│   └── web/         # Fullstack application (Next.js)
-├── packages/
-```
+1. **Post feed** — Infinite scrolling via offset pagination (`offset` + `limit`)
+2. **Loading & error states** — Handle loading and show a retry option on error
+3. **Like posts** — User can like/unlike a post
+4. **Mock API** — REST and GraphQL endpoints with mock data and simulated delays
 
-## Available Scripts
+## API Choice
 
-- `bun run dev`: Start all applications in development mode
-- `bun run build`: Build all applications
-- `bun run check-types`: Check TypeScript types across all apps
+Pick one:
+
+- **REST + TanStack Query** — Implement first (recommended)
+- **GraphQL + Apollo Client** — Alternative; hooks are commented in `use-posts-graphql.ts`
+
+## Key Files
+
+| Purpose              | Location                                          |
+| -------------------- | ------------------------------------------------- |
+| Home page            | `apps/web/src/app/page.tsx`                       |
+| Profile page         | `apps/web/src/app/[username]/page.tsx`            |
+| REST API routes      | `apps/web/src/app/api/posts/`, `api/authors/`     |
+| GraphQL API          | `apps/web/src/app/api/graphql/route.ts`           |
+| Mock data            | `apps/web/src/lib/mock-data.ts`                   |
+| REST client          | `apps/web/src/lib/api.ts`                         |
+| TanStack Query hooks | `apps/web/src/hooks/use-posts.ts`                 |
+| Feed component       | `apps/web/src/app/_components/feed.tsx`           |
+| Post card            | `apps/web/src/components/post-card.tsx`          |
+
+## REST Endpoints
+
+- `GET /api/posts?offset=0&limit=3` — Paginated posts
+- `POST /api/posts/[id]/like` — Toggle like
+- `GET /api/authors/[username]` — Author profile
+- `GET /api/authors/[username]/posts?offset=0&limit=3` — Author's posts
+
+## GraphQL
+
+- Query: `posts(offset: Int, limit: Int)`
+- Mutation: `likePost(postId: ID!)`
+
+## Scripts
+
+- `bun run dev` — Start dev server (port 3001)
+- `bun run build` — Build for production

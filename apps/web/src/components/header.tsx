@@ -1,28 +1,19 @@
 "use client";
+
+import { MoreHorizontal, Pin } from "lucide-react";
 import Link from "next/link";
 
 import { ModeToggle } from "./mode-toggle";
 
 export default function Header() {
-  const links = [{ to: "/", label: "Home" }] as const;
-
   return (
-    <div>
-      <div className="flex flex-row items-center justify-between px-2 py-1">
-        <nav className="flex gap-4 text-lg">
-          {links.map(({ to, label }) => {
-            return (
-              <Link key={to} href={to}>
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
-        <div className="flex items-center gap-2">
+    <header className="sticky top-0 z-10 border-b border-border bg-background">
+      <div className="flex flex-row items-center justify-between px-4 py-3">
+        <h1 className="text-2xl font-bold">Feed</h1>
+        <div className="flex flex-1 items-center justify-end gap-2">
           <ModeToggle />
         </div>
       </div>
-      <hr />
-    </div>
+    </header>
   );
 }

@@ -28,11 +28,19 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
         <Providers>
-          <div className="grid grid-rows-[auto_1fr] h-svh">
+          <div className="relative mx-auto grid h-svh max-w-[588px] grid-rows-[auto_1fr] overflow-hidden border-x border-border bg-background">
             <Header />
-            {children}
+            <div
+              id="main-scroll"
+              className="min-h-0 overflow-y-auto overscroll-contain"
+            >
+              {/* <ScrollToTopOnMount /> */}
+              {children}
+            </div>
           </div>
         </Providers>
       </body>

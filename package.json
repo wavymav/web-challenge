@@ -21,6 +21,7 @@
     "dev:web": "turbo -F web dev"
   },
   "dependencies": {
+    "@tanstack/react-query-devtools": "^5.91.3",
     "@web-challenge/env": "workspace:*",
     "dotenv": "catalog:",
     "zod": "catalog:"
