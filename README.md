@@ -11,20 +11,39 @@ bun run dev
 
 Open [http://localhost:3001](http://localhost:3001).
 
+---
+
 ## Requirements
 
-**Implement data fetching** — Choose **TanStack Query (REST)** or **Apollo Client (GraphQL)**.
+Choose **REST (TanStack Query)** or **GraphQL (Apollo Client)**. Implement data fetching to complete the app.
 
-1. **REST API client** — Implement fetch functions in `apps/web/src/lib/data-fetch.ts` (if using REST)
-2. **Feed** — Infinite scroll, offset pagination (`offset` + `limit`)
-3. **Like / Unlike** — Optimistic updates (UI updates immediately, rollback on error)
-4. **Profile** _(if time)_ — Author info + author posts with infinite scroll, like/unlike
+| Priority | Requirement | Notes |
+|----------|-------------|-------|
+| 1 | **Feed** | Infinite scroll, offset pagination. Home page shows posts. |
+| 2 | **Like / Unlike** | Optimistic updates — UI updates immediately, rollback on error. |
+| 3 | **REST API client** | Only if using REST — implement fetch functions in `data-fetch.ts`. |
+| 4 | **Profile** _(if time)_ | Author header + author posts with infinite scroll, like/unlike. |
+
+---
+
+## Where to Implement
+
+| File | What to do |
+|------|------------|
+| `apps/web/src/lib/data-fetch.ts` | **REST only.** Implement `fetchPosts`, `fetchAuthor`, `fetchAuthorPosts`, `likePost`. |
+| `apps/web/src/hooks/use-posts.ts` | Implement `useInfinitePosts`, `useAuthor`, `useAuthorPosts`, `useLikePost`. Use `data-fetch.ts` (REST) or GraphQL. |
+| `apps/web/src/app/_components/feed.tsx` | Already wired to `useInfinitePosts`. No changes needed. |
+| `apps/web/src/app/[username]/_components/profile-header.tsx` | Uses `useAuthor`. No changes needed. |
+| `apps/web/src/app/[username]/_components/profile-feed.tsx` | Uses `useAuthorPosts`. No changes needed. |
+| `apps/web/src/components/post-card.tsx` | Uses `useLikePost`. No changes needed. |
+
+**Suggested order (REST):** `data-fetch.ts` → `use-posts.ts`. The UI components are ready.
 
 ---
 
 ## REST API
 
-Base URL: same-origin (relative paths). All responses are JSON.
+Base: same-origin. All responses JSON.
 
 ### Types
 
@@ -32,22 +51,17 @@ Base URL: same-origin (relative paths). All responses are JSON.
 interface Post {
   id: string;
   authorId: string;
-  author: {
-    id: string;
-    username: string;
-    displayName: string;
-    avatarUrl: string;
-  };
+  author: { id: string; username: string; displayName: string; avatarUrl: string };
   imageUrl: string;
   caption: string;
-  likes: string[]; // user IDs who liked
-  createdAt: string; // ISO 8601
+  likes: string[];  // user IDs
+  createdAt: string;
 }
 
 interface PostsResponse {
   posts: Post[];
   hasMore: boolean;
-  nextOffset: number | null; // use for next page, or null if no more
+  nextOffset: number | null;  // use for next page
 }
 
 interface Author {
@@ -58,70 +72,26 @@ interface Author {
 }
 
 interface LikeResponse {
-  liked: boolean; // new state after toggle
+  liked: boolean;
   likeCount: number;
 }
 ```
 
 ### Endpoints
 
-#### `GET /api/posts`
-
-Paginated feed. Use `nextOffset` from the response for the next page.
-
-| Query param | Type   | Default | Description |
-| ----------- | ------ | ------- | ----------- |
-| `offset`    | number | 0       | Start index |
-| `limit`     | number | 3       | Page size   |
-
-**Response:** `PostsResponse`
-
-**Example:** `GET /api/posts?offset=0&limit=3`
-
----
-
-#### `GET /api/authors/:username`
-
-Author profile by username.
-
-**Response:** `{ author: Author }`  
-**404:** `{ error: "Author not found" }`
-
-**Example:** `GET /api/authors/alex_creates`
-
----
-
-#### `GET /api/authors/:username/posts`
-
-Author's posts with pagination.
-
-| Query param | Type   | Default | Description |
-| ----------- | ------ | ------- | ----------- |
-| `offset`    | number | 0       | Start index |
-| `limit`     | number | 3       | Page size   |
-
-**Response:** `PostsResponse`  
-**404:** `{ error: "Author not found" }`
-
-**Example:** `GET /api/authors/alex_creates/posts?offset=0&limit=3`
-
----
-
-#### `POST /api/posts/:id/like`
-
-Toggle like on a post. Idempotent — calling again toggles back.
-
-**Response:** `LikeResponse`
-
-**Example:** `POST /api/posts/post-1/like`
+| Method | Path | Params | Response |
+|--------|------|--------|----------|
+| GET | `/api/posts` | `offset`, `limit` (default 0, 3) | `PostsResponse` |
+| GET | `/api/authors/:username` | — | `{ author: Author }` (404 if not found) |
+| GET | `/api/authors/:username/posts` | `offset`, `limit` | `PostsResponse` |
+| POST | `/api/posts/:id/like` | — | `LikeResponse` (toggle) |
 
 ---
 
 ## GraphQL API
 
-Endpoint: `POST /api/graphql`
-
-Request body: `{ query: string, variables?: object }`
+Endpoint: `POST /api/graphql`  
+Body: `{ query: string, variables?: object }`
 
 ### Schema
 
@@ -139,19 +109,14 @@ type Post {
   author: User!
   imageUrl: String!
   caption: String!
-  likes: [ID!]! # user IDs who liked
+  likes: [ID!]!
   createdAt: String!
 }
 
 type PostsConnection {
   posts: [Post!]!
   hasMore: Boolean!
-  nextOffset: Int # use for next page, null if no more
-}
-
-type LikeResponse {
-  liked: Boolean!
-  likeCount: Int!
+  nextOffset: Int
 }
 
 type Query {
@@ -160,32 +125,23 @@ type Query {
   authorPosts(username: String!, offset: Int, limit: Int): PostsConnection!
 }
 
+type LikeResponse {
+  liked: Boolean!
+  likeCount: Int!
+}
+
 type Mutation {
   likePost(postId: ID!): LikeResponse!
 }
 ```
 
-### Example Queries & Mutations
+### Examples
 
-**Feed (paginated):**
-
+**Feed:**
 ```graphql
 query GetPosts($offset: Int, $limit: Int) {
   posts(offset: $offset, limit: $limit) {
-    posts {
-      id
-      authorId
-      author {
-        id
-        username
-        displayName
-        avatarUrl
-      }
-      imageUrl
-      caption
-      likes
-      createdAt
-    }
+    posts { id authorId author { id username displayName avatarUrl } imageUrl caption likes createdAt }
     hasMore
     nextOffset
   }
@@ -193,39 +149,19 @@ query GetPosts($offset: Int, $limit: Int) {
 # Variables: { "offset": 0, "limit": 3 }
 ```
 
-**Author profile:**
-
+**Author:**
 ```graphql
 query GetAuthor($username: String!) {
-  author(username: $username) {
-    id
-    username
-    displayName
-    avatarUrl
-  }
+  author(username: $username) { id username displayName avatarUrl }
 }
 # Variables: { "username": "alex_creates" }
 ```
 
-**Author posts (paginated):**
-
+**Author posts:**
 ```graphql
 query GetAuthorPosts($username: String!, $offset: Int, $limit: Int) {
   authorPosts(username: $username, offset: $offset, limit: $limit) {
-    posts {
-      id
-      authorId
-      author {
-        id
-        username
-        displayName
-        avatarUrl
-      }
-      imageUrl
-      caption
-      likes
-      createdAt
-    }
+    posts { id authorId author { id username displayName avatarUrl } imageUrl caption likes createdAt }
     hasMore
     nextOffset
   }
@@ -233,28 +169,21 @@ query GetAuthorPosts($username: String!, $offset: Int, $limit: Int) {
 # Variables: { "username": "alex_creates", "offset": 0, "limit": 3 }
 ```
 
-**Like / unlike:**
-
+**Like:**
 ```graphql
 mutation LikePost($postId: ID!) {
-  likePost(postId: $postId) {
-    liked
-    likeCount
-  }
+  likePost(postId: $postId) { liked likeCount }
 }
 # Variables: { "postId": "post-1" }
 ```
 
 ---
 
-## Key Files
+## Reference
 
-| Purpose                                           | Location                                |
-| ------------------------------------------------- | --------------------------------------- |
-| REST API client — TODO: implement fetch functions | `apps/web/src/lib/data-fetch.ts`        |
-| Hooks to implement                                | `apps/web/src/hooks/use-posts.ts`       |
-| Feed                                              | `apps/web/src/app/_components/feed.tsx` |
-| Profile                                           | `apps/web/src/app/[username]/page.tsx`  |
-| Post card                                         | `apps/web/src/components/post-card.tsx` |
-| GraphQL schema                                    | `apps/web/src/lib/graphql/schema.ts`    |
-| Mock data                                         | `apps/web/src/lib/mock-data.ts`         |
+| File | Purpose |
+|------|---------|
+| `apps/web/src/lib/data-fetch.ts` | REST client (implement fetches) |
+| `apps/web/src/hooks/use-posts.ts` | Data hooks (implement) |
+| `apps/web/src/lib/graphql/schema.ts` | GraphQL schema |
+| `apps/web/src/lib/mock-data.ts` | Mock data source |
